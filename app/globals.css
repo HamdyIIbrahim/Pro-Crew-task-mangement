@@ -3,31 +3,33 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --main-color: #019b98;
+  --secondry-color: #696969;
+  --danger-color: #f00202;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+.body {
+  background-color: #eceded;
+  @apply w-full;
 }
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+.tableParent {
+  width: 100%;
+  min-height: 92vh;
+  z-index: -1;
 }
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.tableView {
+  width: 100%;
+  @apply mx-auto;
+}
+.p-datatable {
+  position: initial !important;
+  @apply w-[98%] mx-auto;
+}
+.p-datatable-header {
+  background-color: white !important;
+  border-radius: 10px 10px 0px 0px;
+  z-index: -3;
+}
+.p-inputtext.p-component.p-password-input {
+  @apply appearance-none block w-full bg-gray-200 text-gray-700 border rounded py-1 px-4 leading-tight focus:outline-none focus:bg-white !important;
 }
