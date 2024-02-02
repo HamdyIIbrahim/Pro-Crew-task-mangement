@@ -14,11 +14,13 @@ const Login = ({ setType }) => {
 
   const handleError = (errors) => {};
   const dispatch = useDispatch();
+
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm();
+
   const onFormSubmit = async (data) => {
     const loginData = {
       email: data.email,
@@ -58,10 +60,12 @@ const Login = ({ setType }) => {
       });
     }
   };
+
   const registerOptions = {
     email: { required: "Email is required" },
     password: { required: "Password is required" },
   };
+
   return (
     <m.div
       initial={{ opacity: 0 }}

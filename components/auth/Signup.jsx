@@ -34,6 +34,7 @@ const Signup = ({ setType }) => {
       errors[name] && <small className="p-error">{errors[name].message}</small>
     );
   };
+
   const passwordFooter = (
     <>
       <Divider />
@@ -46,10 +47,12 @@ const Signup = ({ setType }) => {
       </ul>
     </>
   );
+
   const validateConfirmPassword = (value) => {
     const password = getValues("password");
     return password === value || "Passwords do not match ";
   };
+
   const onFormSubmit = async (data) => {
     const signupData = {
       name: data.name,
@@ -88,6 +91,7 @@ const Signup = ({ setType }) => {
       });
     }
   };
+
   const handleChange = (e) => {
     const file = e.currentTarget.files[0];
     setProfileImage(file);

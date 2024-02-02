@@ -64,6 +64,7 @@ const Table = ({ tasks, getData }) => {
 
   useEffect(() => {}, [allTasks, tasks, getData]);
 
+  // function that handles adding a new tasks
   const onFormSubmit = async (data) => {
     try {
       setLoading(true);
@@ -100,6 +101,7 @@ const Table = ({ tasks, getData }) => {
     }
   };
 
+  //this is start task function that start the tracker and update tasks data
   async function handleClockIn(Id) {
     const dateNow = new Date();
     setClockIn(dateNow);
@@ -139,6 +141,7 @@ const Table = ({ tasks, getData }) => {
     }
   }
 
+  //this is complete task function that stop the tracker and update tasks data
   async function handleClockOut(Id) {
     setIsTracking(false);
     const dateNow = new Date();
@@ -189,6 +192,7 @@ const Table = ({ tasks, getData }) => {
     return formattedTime;
   }
 
+  // themes for a status of the task
   const getSeverity = (value) => {
     switch (value) {
       case "In progress":
@@ -202,6 +206,7 @@ const Table = ({ tasks, getData }) => {
     }
   };
 
+  // yo edit task title
   const EditTask = () => {
     try {
       setLoading(true);
@@ -410,6 +415,7 @@ const Table = ({ tasks, getData }) => {
     );
   };
 
+  // start task button
   const startTaskTemplate = (option) => {
     return (
       <button
@@ -424,6 +430,7 @@ const Table = ({ tasks, getData }) => {
     );
   };
 
+  //end task button
   const endTaskTemplate = (option) => {
     return (
       <button
@@ -440,6 +447,7 @@ const Table = ({ tasks, getData }) => {
     );
   };
 
+  // to display the status with a theme color
   const statusTemplate = (option) => {
     return (
       <Tag
@@ -450,6 +458,7 @@ const Table = ({ tasks, getData }) => {
     );
   };
 
+  //to display task spent time in the HH:MM:SS format
   const timeSpentTemplate = (option) => {
     return <span>{formatTime(option.timeSpentOnTask)}</span>;
   };
@@ -458,10 +467,11 @@ const Table = ({ tasks, getData }) => {
     title: { required: "Task title is required" },
   };
 
+  //tables headers
   const renderHeader = () => {
     return (
       <div className="flex flex-col gap-4 lg:flex-row lg:justify-between w-full my-4 lg:gap-2">
-        <div className={`flex justify-content-end `}>
+        <div className={`flex flex-col md:flex-row justify-content-end gap-4`}>
           <span
             className={`flex flex-row gap-2 bg-gray-200 text-gray-700 border rounded-lg border-gray-200 py-2 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500 w-full`}
           >
@@ -478,18 +488,20 @@ const Table = ({ tasks, getData }) => {
               className={` bg-gray-200 text-gray-700 leading-tight focus:outline-none focus:bg-transparent focus:border-gray-500 w-full mx-2`}
             />
           </span>
-          <button
-            onClick={getFilterTasks}
-            className="bg-[#014e60] text-white px-4 py-[2px] w-36 lg:w-64  mx-2 rounded-lg"
-          >
-            Search
-          </button>
-          <button
-            onClick={() => setTaskModal((prev) => !prev)}
-            className="bg-[--main-color] text-white px-4 py-[2px] text-nowrap lg:w-64  mx-2 rounded-lg"
-          >
-            Add Task
-          </button>
+          <div className="flex flex-row justify-between gap-4">
+            <button
+              onClick={getFilterTasks}
+              className="bg-[#014e60] text-white px-4 py-2  w-1/2 lg:w-40  md:mx-2 rounded-lg"
+            >
+              Search
+            </button>
+            <button
+              onClick={() => setTaskModal((prev) => !prev)}
+              className="bg-[--main-color] text-white px-4 py-2 text-nowrap w-1/2 lg:w-64  md:mx-2 rounded-lg"
+            >
+              Add Task
+            </button>
+          </div>
           <Dialog
             header="Add New Task"
             visible={taskModal}

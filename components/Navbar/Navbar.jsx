@@ -2,27 +2,13 @@
 import Image from "next/image";
 import style from "./Navbar.module.css";
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { logOut } from "@/lib/features/User/authSlice";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 const Navbar = ({ userInfo }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dispatch = useDispatch();
-  const path = usePathname();
   const router = useRouter();
-  // const { userInfo, adminLogo, id, adminName } = useSelector(
-  //   (state) => state.filter
-  // );
-
-  // useEffect(() => {
-  //   if (path === "/") {
-  //     return;
-  //   } else {
-  //     if (!id) {
-  //       dispatch(setCredentials(userInfo));
-  //     }
-  //   }
-  // }, [adminLogo, id, adminName, userInfo, dispatch, path]);
   useEffect(() => {}, []);
   async function handleLogOut() {
     try {
