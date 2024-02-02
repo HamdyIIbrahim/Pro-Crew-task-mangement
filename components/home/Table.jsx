@@ -20,6 +20,8 @@ import {
 } from "@/lib/features/Task/taskAction";
 import { motion as m } from "framer-motion";
 import { InputText } from "primereact/inputtext";
+import { Dropdown } from "primereact/dropdown";
+const Priorities = ["low", "medium", "high"];
 const Table = ({ tasks, getData }) => {
   const toast = useRef(null);
   const [allTasks, setAllTasks] = useState(tasks);
@@ -36,6 +38,7 @@ const Table = ({ tasks, getData }) => {
   const [isTracking, setIsTracking] = useState(false);
   const [editTaskDialog, setEditTaskDialog] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
+  const [selectedPriority, setSelectedPriority] = useState();
 
   const handleError = (errors) => {};
 
@@ -68,7 +71,9 @@ const Table = ({ tasks, getData }) => {
   const onFormSubmit = async (data) => {
     try {
       setLoading(true);
-      dispatch(createTask({ title: data.title })).then(async (response) => {
+      dispatch(
+        createTask({ title: data.title, priority: selectedPriority })
+      ).then(async (response) => {
         if (response.payload.status === 201) {
           setLoading(false);
           const newTasks = await getData();
@@ -193,14 +198,27 @@ const Table = ({ tasks, getData }) => {
   }
 
   // themes for a status of the task
-  const getSeverity = (value) => {
+  const statusSeverity = (value) => {
     switch (value) {
-      case "In progress":
+      case "in progress":
         return "#6366F1";
-      case "Completed":
+      case "completed":
         return "#22C55E";
       case "pending":
         return "#F59E0B";
+      default:
+        return null;
+    }
+  };
+
+  const prioritySeverity = (value) => {
+    switch (value) {
+      case "low":
+        return "#03C988";
+      case "medium":
+        return "#FFC000";
+      case "high":
+        return "#E84545";
       default:
         return null;
     }
@@ -210,30 +228,34 @@ const Table = ({ tasks, getData }) => {
   const EditTask = () => {
     try {
       setLoading(true);
-      dispatch(editTask({ Id: updateTaskId, title: taskTitle })).then(
-        async (response) => {
-          if (response.payload.status === 200) {
-            setLoading(false);
-            const newTasks = await getData();
-            setAllTasks(newTasks);
-            setEditTaskDialog((prev) => !prev);
-            toast.current.show({
-              severity: "success",
-              summary: "Success",
-              detail: "Task updated successfully.",
-              life: 2000,
-            });
-          } else {
-            setLoading(false);
-            toast.current.show({
-              severity: "error",
-              summary: "Error",
-              detail: "Faild to update this task",
-              life: 3000,
-            });
-          }
+      dispatch(
+        editTask({
+          Id: updateTaskId,
+          title: taskTitle,
+          priority: selectedPriority,
+        })
+      ).then(async (response) => {
+        if (response.payload.status === 200) {
+          setLoading(false);
+          const newTasks = await getData();
+          setAllTasks(newTasks);
+          setEditTaskDialog((prev) => !prev);
+          toast.current.show({
+            severity: "success",
+            summary: "Success",
+            detail: "Task updated successfully.",
+            life: 2000,
+          });
+        } else {
+          setLoading(false);
+          toast.current.show({
+            severity: "error",
+            summary: "Error",
+            detail: "Faild to update this task",
+            life: 3000,
+          });
         }
-      );
+      });
     } catch (error) {
       setLoading(false);
       toast.current.show({
@@ -286,7 +308,6 @@ const Table = ({ tasks, getData }) => {
   const getFilterTasks = () => {
     dispatch(filterTasks(globalFilterValue)).then((response) => {
       if (response.payload.status === 200) {
-        console.log(response);
         setAllTasks(response.payload.data.task);
       }
     });
@@ -387,8 +408,17 @@ const Table = ({ tasks, getData }) => {
               id="taskTitle"
               value={taskTitle}
               onChange={(e) => setTaskTitle(e.target.value)}
-              className="p-3 border-[2px] border-[--secondry-color]"
+              className="p-3 border-[2px] border-[--main-color]"
             />
+            <div className="my-8">
+              <Dropdown
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.value)}
+                options={Priorities}
+                placeholder="Select a task priority"
+                className="w-full md:w-14rem p-0 h-12 text-start border-[2px] border-[--main-color]"
+              />
+            </div>
             <div className="w-full text-center">
               {loading === true ? (
                 <Button
@@ -452,8 +482,20 @@ const Table = ({ tasks, getData }) => {
     return (
       <Tag
         value={option.status}
-        severity={getSeverity(option.status)}
-        style={{ backgroundColor: getSeverity(option.status) }}
+        severity={statusSeverity(option.status)}
+        style={{ backgroundColor: statusSeverity(option.status) }}
+      />
+    );
+  };
+
+  // to display the status with a theme color
+  const priorityTemplate = (option) => {
+    return (
+      <Tag
+        value={option.priority}
+        severity={statusSeverity(option.priority)}
+        style={{ backgroundColor: prioritySeverity(option.priority) }}
+        className="px-4"
       />
     );
   };
@@ -484,8 +526,8 @@ const Table = ({ tasks, getData }) => {
             <input
               value={globalFilterValue}
               onChange={(e) => setGlobalFilterValue(e.target.value)}
-              placeholder="Search by title"
-              className={` bg-gray-200 text-gray-700 leading-tight focus:outline-none focus:bg-transparent focus:border-gray-500 w-full mx-2`}
+              placeholder="Search by title , Status , Priority"
+              className={` bg-gray-200 text-gray-700 leading-tight focus:outline-none focus:bg-transparent focus:border-gray-500 w-72 mx-2`}
             />
           </span>
           <div className="flex flex-row justify-between gap-4">
@@ -497,7 +539,7 @@ const Table = ({ tasks, getData }) => {
             </button>
             <button
               onClick={() => setTaskModal((prev) => !prev)}
-              className="bg-[--main-color] text-white px-4 py-2 text-nowrap w-1/2 lg:w-64  md:mx-2 rounded-lg"
+              className="bg-[--main-color] text-white px-4 py-2 text-nowrap w-1/2 lg:w-52  md:mx-2 rounded-lg"
             >
               Add Task
             </button>
@@ -513,7 +555,7 @@ const Table = ({ tasks, getData }) => {
               onSubmit={handleSubmit(onFormSubmit, handleError)}
             >
               <div className="py-8 text-base leading-6  text-gray-700 sm:text-lg sm:leading-7 text-center">
-                <div className="relative">
+                <div className="relative ">
                   <input
                     autoComplete="off"
                     id="title"
@@ -532,6 +574,15 @@ const Table = ({ tasks, getData }) => {
                   >
                     Title
                   </label>
+                </div>
+                <div className="my-8">
+                  <Dropdown
+                    value={selectedPriority}
+                    onChange={(e) => setSelectedPriority(e.value)}
+                    options={Priorities}
+                    placeholder="Select a task priority"
+                    className="w-full md:w-14rem p-0  text-start border-[2px] border-[--main-color]"
+                  />
                 </div>
                 <button
                   type="submit"
@@ -595,6 +646,12 @@ const Table = ({ tasks, getData }) => {
           field="timeSpentOnTask"
           body={timeSpentTemplate}
           header="Time Spent"
+          headerstyle={{ backgroundColor: "white" }}
+        ></Column>
+        <Column
+          field="priority"
+          header="Priority"
+          body={priorityTemplate}
           headerstyle={{ backgroundColor: "white" }}
         ></Column>
         <Column

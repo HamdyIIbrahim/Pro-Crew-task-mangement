@@ -29,6 +29,7 @@ const Login = ({ setType }) => {
     try {
       setLoading(true);
       dispatch(authLogin(loginData)).then((response) => {
+        console.log(response);
         if (response.payload && response.payload.status === 200) {
           setLoading(false);
           setCookie("name", response.payload.data.name);
