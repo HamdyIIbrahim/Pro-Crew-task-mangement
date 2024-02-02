@@ -13,7 +13,14 @@ import { Toast } from "primereact/toast";
 import { Tag } from "primereact/tag";
 import { useDispatch } from "react-redux";
 import { useForm } from "react-hook-form";
-import { createTask } from "@/lib/features/Task/taskAction";
+import {
+  createTask,
+  deleteTask,
+  endTask,
+  filterTasks,
+  startTask,
+} from "@/lib/features/Task/taskAction";
+import { motion as m } from "framer-motion";
 const Table = ({ tasks, getData }) => {
   const toast = useRef(null);
   const [allTasks, setAllTasks] = useState(tasks);
@@ -22,46 +29,121 @@ const Table = ({ tasks, getData }) => {
   const [globalFilterValue, setGlobalFilterValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleteId, setDeleteId] = useState();
-  // const { token } = useSelector((state) => state.filter);
+  const [progressTask, setProgressTask] = useState("");
   const [filters, setFilters] = useState({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   });
-  const [clockIn, setClockIn] = useState(null);
-  const [clockOut, setClockOut] = useState(null);
-  const [elapsedTime, setElapsedTime] = useState("00:00:00");
-  const [interval, setInterval] = useState();
-  const handleClockIn = () => {
-    setClockIn(new Date());
-  };
+  const [, setClockIn] = useState(null);
+  const [, setClockOut] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [isTracking, setIsTracking] = useState(false);
 
-  const handleClockOut = () => {
-    setClockOut(new Date());
-    clearInterval(interval);
-  };
+  async function handleClockIn(Id) {
+    const dateNow = new Date();
+    setClockIn(dateNow);
+    setIsTracking(true);
+    setProgressTask(Id);
+    try {
+      dispatch(startTask({ Id, clockIn: dateNow.toString() })).then(
+        async (response) => {
+          if (response.payload.status === 200) {
+            setLoading(false);
+            const newTasks = await getData();
+            setAllTasks(newTasks);
+            toast.current.show({
+              severity: "success",
+              summary: "Success",
+              detail: "Task started.",
+              life: 2000,
+            });
+          } else {
+            setLoading(false);
+            toast.current.show({
+              severity: "error",
+              summary: "Error",
+              detail: "Failed to start task.",
+              life: 3000,
+            });
+          }
+        }
+      );
+    } catch (error) {
+      toast.current.show({
+        severity: "error",
+        summary: "Error",
+        detail: error,
+        life: 3000,
+      });
+    }
+  }
+
+  async function handleClockOut(Id) {
+    setIsTracking(false);
+    const dateNow = new Date();
+    setProgressTask("");
+    try {
+      dispatch(endTask({ Id, clockOut: dateNow.toString() })).then(
+        async (response) => {
+          if (response.payload.status === 200) {
+            setClockOut(dateNow);
+            setLoading(false);
+            const newTasks = await getData();
+            setAllTasks(newTasks);
+            setElapsedTime(0);
+            toast.current.show({
+              severity: "success",
+              summary: "Success",
+              detail: "Task Compeleted.",
+              life: 2000,
+            });
+          } else {
+            setLoading(false);
+            toast.current.show({
+              severity: "error",
+              summary: "Error",
+              detail: "Failed to compelete task.",
+              life: 3000,
+            });
+          }
+        }
+      );
+    } catch (error) {
+      toast.current.show({
+        severity: "error",
+        summary: "Error",
+        detail: error,
+        life: 3000,
+      });
+    }
+  }
 
   useEffect(() => {
-    if (clockIn) {
-      const id = setInterval(() => {
-        const currentTime = new Date();
-        const timeDiff = currentTime - clockIn;
-        const hours = Math.floor(timeDiff / 3600000);
-        const minutes = Math.floor((timeDiff % 3600000) / 60000);
-        const seconds = Math.floor((timeDiff % 60000) / 1000);
+    let intervalId;
+    const handleInterval = () => {
+      setElapsedTime((prevTime) => prevTime + 1000);
+    };
 
-        setElapsedTime(`${hours}:${minutes}:${seconds}`);
-      }, 1000);
-      setInterval(id);
+    if (isTracking) {
+      intervalId = setInterval(handleInterval, 1000);
+    } else {
+      clearInterval(intervalId);
     }
-  }, [clockIn, clockOut]);
 
-  console.log(elapsedTime);
+    return () => clearInterval(intervalId);
+  }, [isTracking]);
 
   useEffect(() => {}, [allTasks, tasks, getData]);
 
-  function btnShowModal(Id) {
-    setDeleteId(Id);
-    setVisible(true);
+  function formatTime(milliseconds) {
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const formattedTime = `${hours.toString().padStart(2, "0")}:${(minutes % 60)
+      .toString()
+      .padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
+    return formattedTime;
   }
+
   const getSeverity = (value) => {
     switch (value) {
       case "In progress":
@@ -74,44 +156,43 @@ const Table = ({ tasks, getData }) => {
         return null;
     }
   };
+
   async function handleDelete() {
-    setLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/delete-business/${deleteId}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+      setLoading(true);
+      dispatch(deleteTask(deleteId)).then(async (response) => {
+        if (response.payload.status === 200) {
+          setLoading(false);
+          const newTasks = await getData();
+          setAllTasks(newTasks);
+          setVisible((prev) => !prev);
+          toast.current.show({
+            severity: "success",
+            summary: "Success",
+            detail: "Task deleted successfully.",
+            life: 2000,
+          });
+        } else {
+          setLoading(false);
+          toast.current.show({
+            severity: "error",
+            summary: "Error",
+            detail: "Faild to delete this task",
+            life: 3000,
+          });
         }
-      );
-      if (response.ok) {
-        setLoading(false);
-        setVisible(false);
-        const newData = await getData();
-        setProducts(newData);
-        toast.current.show({
-          severity: "success",
-          summary: "Success",
-          detail: "Business Deleted Successfully",
-          life: 3000,
-        });
-      } else {
-        setLoading(false);
-        const data = await response.json();
-        toast.current.show({
-          severity: "error",
-          summary: "Error",
-          detail: data.message,
-          life: 3000,
-        });
-      }
+      });
     } catch (error) {
       setLoading(false);
+      toast.current.show({
+        severity: "error",
+        summary: "Error",
+        detail: error.message,
+        life: 3000,
+      });
     }
   }
+
   const footerContent = () => {
     return (
       <div>
@@ -144,6 +225,7 @@ const Table = ({ tasks, getData }) => {
       </div>
     );
   };
+
   const actionsComponent = (option) => {
     return (
       <div className=" flex flex-row justify-center items-center gap-2 w-16">
@@ -157,7 +239,10 @@ const Table = ({ tasks, getData }) => {
         <button
           label="Show"
           icon="pi pi-external-link"
-          onClick={() => btnShowModal(option.id)}
+          onClick={() => {
+            setDeleteId(option._id);
+            setVisible(true);
+          }}
         >
           <Image
             alt={"image"}
@@ -181,35 +266,46 @@ const Table = ({ tasks, getData }) => {
       </div>
     );
   };
-  const onGlobalFilterChange = (e) => {
-    const value = e.target.value;
-    let _filters = { ...filters };
 
-    _filters["global"].value = value;
-
-    setFilters(_filters);
-    setGlobalFilterValue(value);
+  const getFilterTasks = () => {
+    dispatch(filterTasks(globalFilterValue)).then((response) => {
+      if (response.payload.status === 200) {
+        console.log(response);
+        setAllTasks(response.payload.data.task);
+      }
+    });
   };
+
   const startTaskTemplate = (option) => {
     return (
       <button
-        onClick={handleClockIn}
-        className="bg-[--main-color] text-white px-4 py-[2px] rounded-lg"
+        onClick={() => handleClockIn(option._id)}
+        disabled={progressTask !== "" ? true : false}
+        className={` text-white px-4 py-[2px] rounded-lg ${
+          progressTask !== "" ? "bg-[--secondry-color]" : "bg-[--main-color]"
+        }`}
       >
         Start
       </button>
     );
   };
-  const endTaskTemplate = () => {
+
+  const endTaskTemplate = (option) => {
     return (
       <button
-        onClick={handleClockOut}
-        className="bg-[--danger-color] text-white px-4 py-[2px] rounded-lg"
+        onClick={() => handleClockOut(option._id)}
+        disabled={option._id !== progressTask ? true : false}
+        className={`${
+          option._id !== progressTask
+            ? "bg-[--secondry-color]"
+            : "bg-[--danger-color]"
+        } text-white px-4 py-[2px] rounded-lg`}
       >
         End
       </button>
     );
   };
+
   const statusTemplate = (option) => {
     return (
       <Tag
@@ -219,13 +315,17 @@ const Table = ({ tasks, getData }) => {
       />
     );
   };
+
   const handleError = (errors) => {};
+
   const dispatch = useDispatch();
+
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm();
+
   const onFormSubmit = async (data) => {
     try {
       setLoading(true);
@@ -239,7 +339,7 @@ const Table = ({ tasks, getData }) => {
           toast.current.show({
             severity: "success",
             summary: "Success",
-            detail: "login Successfully",
+            detail: "Task created successfully.",
             life: 2000,
           });
         } else {
@@ -247,7 +347,7 @@ const Table = ({ tasks, getData }) => {
           toast.current.show({
             severity: "error",
             summary: "Error",
-            detail: response.payload.message,
+            detail: "Failed to create task.",
             life: 3000,
           });
         }
@@ -261,9 +361,13 @@ const Table = ({ tasks, getData }) => {
       });
     }
   };
+  const timeSpentTemplate = (option) => {
+    return <span>{formatTime(option.timeSpentOnTask)}</span>;
+  };
   const registerOptions = {
     title: { required: "Task title is required" },
   };
+
   const renderHeader = () => {
     return (
       <div className="flex flex-col gap-4 lg:flex-row lg:justify-between w-full my-4 lg:gap-2">
@@ -279,11 +383,17 @@ const Table = ({ tasks, getData }) => {
             />
             <input
               value={globalFilterValue}
-              onChange={onGlobalFilterChange}
+              onChange={(e) => setGlobalFilterValue(e.target.value)}
               placeholder="Search by title"
               className={` bg-gray-200 text-gray-700 leading-tight focus:outline-none focus:bg-transparent focus:border-gray-500 w-full mx-2`}
             />
           </span>
+          <button
+            onClick={getFilterTasks}
+            className="bg-[#014e60] text-white px-4 py-[2px] w-52 lg:w-64  mx-2 rounded-lg"
+          >
+            Search
+          </button>
           <button
             onClick={() => setTaskModal((prev) => !prev)}
             className="bg-[--main-color] text-white px-4 py-[2px] w-52 lg:w-64  mx-2 rounded-lg"
@@ -323,9 +433,17 @@ const Table = ({ tasks, getData }) => {
                 </div>
                 <button
                   type="submit"
-                  className="relative bg-[--main-color] text-white px-5 py-2 rounded-lg mt-10"
+                  className="relative bg-[--main-color] text-white px-5 py-2 rounded-lg mt-10 w-24"
                 >
-                  Submit
+                  {loading ? (
+                    <ProgressSpinner
+                      style={{ width: "20px", height: "20px" }}
+                      strokeWidth="4"
+                      animationDuration=".5s"
+                    />
+                  ) : (
+                    "Submit"
+                  )}
                 </button>
               </div>
             </form>
@@ -333,19 +451,25 @@ const Table = ({ tasks, getData }) => {
         </div>
         <div className="text-2xl mr-10 text-center">
           <span className="text-[--main-color]">Tracker : </span>
-          <span>{elapsedTime}</span>
+          <span>{formatTime(elapsedTime)}</span>
         </div>
       </div>
     );
   };
+
   const header = renderHeader();
   return (
-    <>
+    <m.div
+      className="body"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.75, ease: "easeInOut" }}
+    >
       <Toast ref={toast} />
       <DataTable
         value={allTasks}
         paginator
-        rows={5}
+        rows={20}
         dataKey="id"
         tableStyle={{ minWidth: "50rem" }}
         className="mt-3"
@@ -367,16 +491,17 @@ const Table = ({ tasks, getData }) => {
         ></Column>
         <Column
           field="timeSpentOnTask"
+          body={timeSpentTemplate}
           header="Time Spent"
           headerstyle={{ backgroundColor: "white" }}
         ></Column>
         <Column
-          header="Start"
+          header="Start Task"
           body={startTaskTemplate}
           headerstyle={{ backgroundColor: "white" }}
         ></Column>
         <Column
-          header="End"
+          header="End Task"
           body={endTaskTemplate}
           headerstyle={{ backgroundColor: "white" }}
         ></Column>
@@ -388,7 +513,7 @@ const Table = ({ tasks, getData }) => {
           body={actionsComponent}
         ></Column>
       </DataTable>
-    </>
+    </m.div>
   );
 };
 

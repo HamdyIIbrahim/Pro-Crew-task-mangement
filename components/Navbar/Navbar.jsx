@@ -5,13 +5,11 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { logOut } from "@/lib/features/User/authSlice";
 import { useRouter, usePathname } from "next/navigation";
-import { getCookies } from "cookies-next";
-const Navbar = () => {
+const Navbar = ({ userInfo }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dispatch = useDispatch();
   const path = usePathname();
   const router = useRouter();
-  const userInfo = getCookies();
   // const { userInfo, adminLogo, id, adminName } = useSelector(
   //   (state) => state.filter
   // );
@@ -31,7 +29,6 @@ const Navbar = () => {
       await dispatch(logOut());
       router.push("/");
     } catch (error) {
-      // Handle error related to dispatch
       console.error("Error during logout process", error);
     }
   }

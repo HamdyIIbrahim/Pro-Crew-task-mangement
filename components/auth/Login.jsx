@@ -27,7 +27,7 @@ const Login = ({ setType }) => {
     try {
       setLoading(true);
       dispatch(authLogin(loginData)).then((response) => {
-        if (response.payload.status === 201) {
+        if (response.payload && response.payload.status === 201) {
           setLoading(false);
           setCookie("name", response.payload.data.name);
           setCookie("photo", response.payload.data.photo);
@@ -44,7 +44,7 @@ const Login = ({ setType }) => {
           toast.current.show({
             severity: "error",
             summary: "Error",
-            detail: response.payload.message,
+            detail: response.payload.response.data.message,
             life: 3000,
           });
         }
