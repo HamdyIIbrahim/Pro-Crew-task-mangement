@@ -27,7 +27,7 @@ const Login = ({ setType }) => {
     try {
       setLoading(true);
       dispatch(authLogin(loginData)).then((response) => {
-        if (response.payload && response.payload.status === 201) {
+        if (response.payload && response.payload.status === 200) {
           setLoading(false);
           setCookie("name", response.payload.data.name);
           setCookie("photo", response.payload.data.photo);
@@ -124,7 +124,7 @@ const Login = ({ setType }) => {
                     Password
                   </label>
                 </div>
-                <div className="relative">
+                <div className="relative text-center">
                   {loading === true ? (
                     <ProgressSpinner
                       style={{ width: "50px", height: "50px" }}

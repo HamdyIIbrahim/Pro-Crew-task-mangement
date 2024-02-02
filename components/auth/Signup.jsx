@@ -300,7 +300,7 @@ const Signup = ({ setType }) => {
                     </div>
                   </div>
 
-                  <div className="relative">
+                  <div className="relative text-center">
                     {loading === true ? (
                       <ProgressSpinner
                         style={{ width: "50px", height: "50px" }}

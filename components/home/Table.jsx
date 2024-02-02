@@ -3,12 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import Image from "next/image";
-import { FilterMatchMode } from "primereact/api";
-import Link from "next/link";
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
 import { ProgressSpinner } from "primereact/progressspinner";
-import { useSelector } from "react-redux";
 import { Toast } from "primereact/toast";
 import { Tag } from "primereact/tag";
 import { useDispatch } from "react-redux";
@@ -16,11 +13,13 @@ import { useForm } from "react-hook-form";
 import {
   createTask,
   deleteTask,
+  editTask,
   endTask,
   filterTasks,
   startTask,
 } from "@/lib/features/Task/taskAction";
 import { motion as m } from "framer-motion";
+import { InputText } from "primereact/inputtext";
 const Table = ({ tasks, getData }) => {
   const toast = useRef(null);
   const [allTasks, setAllTasks] = useState(tasks);
@@ -29,14 +28,77 @@ const Table = ({ tasks, getData }) => {
   const [globalFilterValue, setGlobalFilterValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleteId, setDeleteId] = useState();
+  const [updateTaskId, setUpdateTaskId] = useState();
   const [progressTask, setProgressTask] = useState("");
-  const [filters, setFilters] = useState({
-    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  });
   const [, setClockIn] = useState(null);
   const [, setClockOut] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isTracking, setIsTracking] = useState(false);
+  const [editTaskDialog, setEditTaskDialog] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
+
+  const handleError = (errors) => {};
+
+  const dispatch = useDispatch();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+
+  useEffect(() => {
+    let intervalId;
+    const handleInterval = () => {
+      setElapsedTime((prevTime) => prevTime + 1000);
+    };
+
+    if (isTracking) {
+      intervalId = setInterval(handleInterval, 1000);
+    } else {
+      clearInterval(intervalId);
+    }
+
+    return () => clearInterval(intervalId);
+  }, [isTracking]);
+
+  useEffect(() => {}, [allTasks, tasks, getData]);
+
+  const onFormSubmit = async (data) => {
+    try {
+      setLoading(true);
+      dispatch(createTask({ title: data.title })).then(async (response) => {
+        if (response.payload.status === 201) {
+          setLoading(false);
+          const newTasks = await getData();
+          setAllTasks(newTasks);
+          setTaskModal((prev) => !prev);
+
+          toast.current.show({
+            severity: "success",
+            summary: "Success",
+            detail: "Task created successfully.",
+            life: 2000,
+          });
+        } else {
+          setLoading(false);
+          toast.current.show({
+            severity: "error",
+            summary: "Error",
+            detail: "Failed to create task.",
+            life: 3000,
+          });
+        }
+      });
+    } catch (error) {
+      toast.current.show({
+        severity: "error",
+        summary: "Error",
+        detail: error,
+        life: 3000,
+      });
+    }
+  };
 
   async function handleClockIn(Id) {
     const dateNow = new Date();
@@ -117,23 +179,6 @@ const Table = ({ tasks, getData }) => {
     }
   }
 
-  useEffect(() => {
-    let intervalId;
-    const handleInterval = () => {
-      setElapsedTime((prevTime) => prevTime + 1000);
-    };
-
-    if (isTracking) {
-      intervalId = setInterval(handleInterval, 1000);
-    } else {
-      clearInterval(intervalId);
-    }
-
-    return () => clearInterval(intervalId);
-  }, [isTracking]);
-
-  useEffect(() => {}, [allTasks, tasks, getData]);
-
   function formatTime(milliseconds) {
     const seconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(seconds / 60);
@@ -157,6 +202,45 @@ const Table = ({ tasks, getData }) => {
     }
   };
 
+  const EditTask = () => {
+    try {
+      setLoading(true);
+      dispatch(editTask({ Id: updateTaskId, title: taskTitle })).then(
+        async (response) => {
+          if (response.payload.status === 200) {
+            setLoading(false);
+            const newTasks = await getData();
+            setAllTasks(newTasks);
+            setEditTaskDialog((prev) => !prev);
+            toast.current.show({
+              severity: "success",
+              summary: "Success",
+              detail: "Task updated successfully.",
+              life: 2000,
+            });
+          } else {
+            setLoading(false);
+            toast.current.show({
+              severity: "error",
+              summary: "Error",
+              detail: "Faild to update this task",
+              life: 3000,
+            });
+          }
+        }
+      );
+    } catch (error) {
+      setLoading(false);
+      toast.current.show({
+        severity: "error",
+        summary: "Error",
+        detail: error.message,
+        life: 3000,
+      });
+    }
+  };
+
+  // function for delete task
   async function handleDelete() {
     try {
       setLoading(true);
@@ -193,6 +277,17 @@ const Table = ({ tasks, getData }) => {
     }
   }
 
+  // Get Tasks by title
+  const getFilterTasks = () => {
+    dispatch(filterTasks(globalFilterValue)).then((response) => {
+      if (response.payload.status === 200) {
+        console.log(response);
+        setAllTasks(response.payload.data.task);
+      }
+    });
+  };
+
+  // Footer for delete task Dialog
   const footerContent = () => {
     return (
       <div>
@@ -210,7 +305,6 @@ const Table = ({ tasks, getData }) => {
                 animationDuration=".5s"
               />
             }
-            onClick={() => handleDelete()}
             autoFocus
             className="bg-[--main-color] text-white px-4 py-[2px] rounded-lg"
           />
@@ -226,16 +320,27 @@ const Table = ({ tasks, getData }) => {
     );
   };
 
+  // Actions component that contain edit and delete task
   const actionsComponent = (option) => {
     return (
       <div className=" flex flex-row justify-center items-center gap-2 w-16">
-        <Image
-          alt={"image"}
-          src={"/assets/edit.svg"}
-          width={20}
-          height={20}
-          className="cursor-pointer"
-        />
+        <button
+          label="Show"
+          icon="pi pi-external-link"
+          onClick={() => {
+            setTaskTitle(option.title);
+            setUpdateTaskId(option._id);
+            setEditTaskDialog(true);
+          }}
+        >
+          <Image
+            alt={"image"}
+            src={"/assets/edit.svg"}
+            width={20}
+            height={20}
+            className="cursor-pointer"
+          />
+        </button>
         <button
           label="Show"
           icon="pi pi-external-link"
@@ -252,28 +357,57 @@ const Table = ({ tasks, getData }) => {
             className="cursor-pointer"
           />
         </button>
+        {/* Dialof for Delete Task  */}
         <div className="flex justify-center">
           <Dialog
             header="Delete Task"
             visible={visible}
-            style={{ width: "50vw" }}
+            style={{ width: "70vw" }}
             onHide={() => setVisible(false)}
             footer={footerContent}
           >
             <p className="m-0">Are you sure you want to delete this Task ?</p>
           </Dialog>
         </div>
+        {/* Dialog for Update Task Title */}
+        <Dialog
+          header="Edit Task"
+          visible={editTaskDialog}
+          style={{ width: "70vw" }}
+          onHide={() => setEditTaskDialog(false)}
+        >
+          <div className="flex flex-col gap-4">
+            <label htmlFor="taskTitle">Title</label>
+            <InputText
+              id="taskTitle"
+              value={taskTitle}
+              onChange={(e) => setTaskTitle(e.target.value)}
+              className="p-3 border-[2px] border-[--secondry-color]"
+            />
+            <div className="w-full text-center">
+              {loading === true ? (
+                <Button
+                  label={
+                    <ProgressSpinner
+                      style={{ width: "20px", height: "20px" }}
+                      strokeWidth="4"
+                      animationDuration=".5s"
+                    />
+                  }
+                  className="bg-[--main-color] text-white w-36 px-4 py-2 rounded-lg  mt-4"
+                />
+              ) : (
+                <Button
+                  label="Update"
+                  onClick={EditTask}
+                  className="bg-[--main-color] text-white px-4  w-36 py-2 rounded-lg mt-4"
+                />
+              )}
+            </div>
+          </div>
+        </Dialog>
       </div>
     );
-  };
-
-  const getFilterTasks = () => {
-    dispatch(filterTasks(globalFilterValue)).then((response) => {
-      if (response.payload.status === 200) {
-        console.log(response);
-        setAllTasks(response.payload.data.task);
-      }
-    });
   };
 
   const startTaskTemplate = (option) => {
@@ -316,54 +450,10 @@ const Table = ({ tasks, getData }) => {
     );
   };
 
-  const handleError = (errors) => {};
-
-  const dispatch = useDispatch();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
-
-  const onFormSubmit = async (data) => {
-    try {
-      setLoading(true);
-      dispatch(createTask({ title: data.title })).then(async (response) => {
-        if (response.payload.status === 201) {
-          setLoading(false);
-          const newTasks = await getData();
-          setAllTasks(newTasks);
-          setTaskModal((prev) => !prev);
-
-          toast.current.show({
-            severity: "success",
-            summary: "Success",
-            detail: "Task created successfully.",
-            life: 2000,
-          });
-        } else {
-          setLoading(false);
-          toast.current.show({
-            severity: "error",
-            summary: "Error",
-            detail: "Failed to create task.",
-            life: 3000,
-          });
-        }
-      });
-    } catch (error) {
-      toast.current.show({
-        severity: "error",
-        summary: "Error",
-        detail: error,
-        life: 3000,
-      });
-    }
-  };
   const timeSpentTemplate = (option) => {
     return <span>{formatTime(option.timeSpentOnTask)}</span>;
   };
+
   const registerOptions = {
     title: { required: "Task title is required" },
   };
@@ -390,13 +480,13 @@ const Table = ({ tasks, getData }) => {
           </span>
           <button
             onClick={getFilterTasks}
-            className="bg-[#014e60] text-white px-4 py-[2px] w-52 lg:w-64  mx-2 rounded-lg"
+            className="bg-[#014e60] text-white px-4 py-[2px] w-36 lg:w-64  mx-2 rounded-lg"
           >
             Search
           </button>
           <button
             onClick={() => setTaskModal((prev) => !prev)}
-            className="bg-[--main-color] text-white px-4 py-[2px] w-52 lg:w-64  mx-2 rounded-lg"
+            className="bg-[--main-color] text-white px-4 py-[2px] text-nowrap lg:w-64  mx-2 rounded-lg"
           >
             Add Task
           </button>
@@ -458,6 +548,7 @@ const Table = ({ tasks, getData }) => {
   };
 
   const header = renderHeader();
+
   return (
     <m.div
       className="body"
@@ -470,13 +561,12 @@ const Table = ({ tasks, getData }) => {
         value={allTasks}
         paginator
         rows={20}
-        dataKey="id"
+        dataKey="_id"
         tableStyle={{ minWidth: "50rem" }}
         className="mt-3"
         globalFilterFields={["title"]}
         header={header}
         headerstyle={{ backgroundColor: "white" }}
-        filters={filters}
       >
         <Column
           field="title"

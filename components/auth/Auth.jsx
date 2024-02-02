@@ -13,7 +13,7 @@ const Auth = () => {
       transition={{ duration: 0.75, ease: "easeInOut" }}
       className="md:h-screen flex flex-col md:flex-row justify-center md:space-y-0 md:space-x-16 items-center my-2 mx-5 md:mx-0 md:my-0"
     >
-      <div className="md:w-1/2 max-w-md">
+      <div className="w-4/6 md:w-1/2 max-w-md">
         <Image
           src="/assets/loginImg.png"
           alt="Sample image"
