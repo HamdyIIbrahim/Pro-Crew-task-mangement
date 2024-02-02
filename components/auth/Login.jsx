@@ -67,7 +67,7 @@ const Login = ({ setType }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.75, ease: "anticipate" }}
-      className="min-h-screen py-1 flex flex-col justify-center sm:py-12"
+      className="md:min-h-screen py-1 flex flex-col justify-center sm:py-4"
     >
       <Toast ref={toast} />
       <div className="relative py-3 sm:max-w-2xl sm:mx-auto">
