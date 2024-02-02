@@ -493,7 +493,7 @@ const Table = ({ tasks, getData }) => {
           <Dialog
             header="Add New Task"
             visible={taskModal}
-            style={{ width: "50vw" }}
+            style={{ width: "70vw" }}
             onHide={() => setTaskModal(false)}
           >
             <form
